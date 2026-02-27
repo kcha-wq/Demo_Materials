@@ -46,11 +46,19 @@
         .text-blue { color: #3498db; }
         .text-red { color: #e74c3c; }
         
-        .progress-bg { background: #1a252f; border-radius: 20px; height: 24px; width: 100%; margin-top: 10px; overflow: hidden; border: 2px solid #7f8c8d; position: relative;}
-        .progress-bar { height: 100%; width: 0%; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .progress-bg { background: #1a252f; border-radius: 20px; height: 24px; width: 100%; margin-top: 10px; overflow: hidden; border: 2px solid #7f8c8d; position: relative; display: flex; align-items: center;}
+        .progress-bar { height: 100%; width: 0%; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: absolute; left: 0; top: 0;}
         .bg-blue { background-color: #3498db; }
         .bg-red { background-color: #e74c3c; }
-        .progress-text { position: absolute; width: 100%; text-align: center; top: 2px; font-size: 14px; font-weight: bold; color: white; text-shadow: 1px 1px 2px black;}
+        
+        /* Permanent EXP Tag */
+        .progress-label { position: absolute; left: 12px; font-size: 13px; font-weight: bold; color: #f1c40f; text-shadow: 1px 1px 2px black; z-index: 2; letter-spacing: 1px;}
+        /* Hidden Number Text */
+        .progress-text { position: absolute; width: 100%; text-align: center; font-size: 14px; font-weight: bold; color: white; text-shadow: 1px 1px 2px black; z-index: 1;}
+
+        /* Secret EXP Styles (Hidden initially) */
+        .secret-exp { visibility: hidden; opacity: 0; transition: opacity 0.5s ease, visibility 0.5s ease; }
+        body.unlocked .secret-exp { visibility: visible; opacity: 1; }
 
         /* Lock Screen Styles */
         .lock-screen { background: #34495e; padding: 30px 20px; border-radius: 12px; width: 100%; box-sizing: border-box; box-shadow: 0 8px 16px rgba(0,0,0,0.3); border: 2px dashed #7f8c8d; margin-top: 20px;}
@@ -92,10 +100,11 @@
 
             <div class="stats">
                 <div>Level: <span id="lvl-a" class="level-text text-blue">1</span></div>
-                <div>Total EXP: <span id="exp-a">0</span></div>
+                <div class="secret-exp">Total EXP: <span id="exp-a">0</span></div>
                 <div class="progress-bg">
                     <div id="bar-a" class="progress-bar bg-blue"></div>
-                    <div id="text-a" class="progress-text">0 / 100 EXP</div>
+                    <div class="progress-label">EXP</div>
+                    <div id="text-a" class="progress-text secret-exp">0 / 100</div>
                 </div>
             </div>
         </div>
@@ -103,7 +112,7 @@
         <div class="middle-section">
             <div id="lock-screen" class="lock-screen">
                 <h3>🔒 Teacher's Data Vault</h3>
-                <p>Enter the password to reveal the hidden math curve.</p>
+                <p>Enter the password to reveal the hidden math curve and EXP formulas.</p>
                 <input type="password" id="pass-input" placeholder="Password">
                 <br>
                 <button onclick="unlockChart()" class="unlock-btn">Unlock Visualizer</button>
@@ -131,10 +140,11 @@
 
             <div class="stats">
                 <div>Level: <span id="lvl-b" class="level-text text-red">1</span></div>
-                <div>Total EXP: <span id="exp-b">0</span></div>
+                <div class="secret-exp">Total EXP: <span id="exp-b">0</span></div>
                 <div class="progress-bg">
                     <div id="bar-b" class="progress-bar bg-red"></div>
-                    <div id="text-b" class="progress-text">0 / 100 EXP</div>
+                    <div class="progress-label">EXP</div>
+                    <div id="text-b" class="progress-text secret-exp">0 / 100</div>
                 </div>
             </div>
         </div>
@@ -176,8 +186,13 @@
         function unlockChart() {
             const pass = document.getElementById('pass-input').value;
             if (pass === 'HWC') {
+                // Reveal Chart
                 document.getElementById('lock-screen').style.display = 'none';
                 document.getElementById('chart-section').style.display = 'block';
+                
+                // Reveal Secret EXP Texts
+                document.body.classList.add('unlocked');
+                
                 // Force chart to resize correctly after being unhidden
                 levelChart.resize();
             } else {
@@ -254,13 +269,25 @@
 
         function updateHeroA() {
             let level = Math.floor(totalExp / 100) + 1;
-            let currentExpInLevel = totalExp % 100;
-            let percent = (currentExpInLevel / 100) * 100;
+            let barA = document.getElementById('bar-a');
+            
+            // 1. 先讓進度條填滿到 100%
+            barA.style.width = '100%';
+            
+            // 2. 等待動畫完成 (0.3秒) 後，瞬間歸零並更新等級
+            setTimeout(() => {
+                barA.style.transition = 'none'; // 關閉動畫，實現瞬間歸零
+                barA.style.width = '0%';
+                document.getElementById('lvl-a').innerText = level;
+                
+                // 3. 稍微延遲後重新開啟動畫效果，準備迎接下一回合
+                setTimeout(() => {
+                    barA.style.transition = 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                }, 20);
+            }, 300);
 
-            document.getElementById('lvl-a').innerText = level;
             document.getElementById('exp-a').innerText = totalExp;
-            document.getElementById('bar-a').style.width = percent + '%';
-            document.getElementById('text-a').innerText = currentExpInLevel + ' / 100 EXP';
+            document.getElementById('text-a').innerText = '0 / 100'; // 固定顯示 0/100
             
             return level;
         }
@@ -278,7 +305,7 @@
             document.getElementById('lvl-b').innerText = level;
             document.getElementById('exp-b').innerText = totalExp;
             document.getElementById('bar-b').style.width = percent + '%';
-            document.getElementById('text-b').innerText = expGainedInThisLevel + ' / ' + expNeededForThisLevelUp + ' EXP';
+            document.getElementById('text-b').innerText = expGainedInThisLevel + ' / ' + expNeededForThisLevelUp;
             
             return level;
         }
